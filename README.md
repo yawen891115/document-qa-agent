@@ -339,3 +339,26 @@ facts that change over time, which is what the hybrid route is for. Sources and 
 ## License
 
 MIT
+
+## Local offline sample mode
+
+With `PUBLIC_DEMO=true`, the server forces offline extractive Q&A and disables web search, uploads, deletion, sample reload, and voice routes. On each start it builds an in-memory index containing only the two project-authored fictional Northwind sample documents. The index is never loaded from a user's previous data directory. The public preview is shared and rate-limited; do not enter personal or confidential text. This preview does not demonstrate live web, GPT generation, or speech.
+
+For a local production-build preview:
+
+```bash
+npm ci
+npm run build
+PUBLIC_DEMO=true HOST=127.0.0.1 PORT=3000 node apps/server/dist/index.js
+```
+
+Open `http://127.0.0.1:3000` and try “How many PTO days does a new employee get?”.
+Use the full local setup above for private documents and optional online features.
+
+## Public demo on Render
+
+The root [Render Blueprint](render.yaml) launches a free Docker web service that supervises the Express API and a localhost-only MCP search service. This hosted mode runs OpenAI GPT-5.4 mini for generated answers and obtains Google web results through SerpAPI and MCP. It indexes only the two fictional Northwind samples, using local hashing embeddings and in-memory retrieval. It offers Auto, Documents, Web, and Both; voice, uploads, deletion, and index mutation are disabled. Citations display excerpts from the sample documents and link to the supplied public web results.
+
+Use [New → Blueprint](https://render.com/docs/infrastructure-as-code) in Render, connect this repository, then supply `OPENAI_API_KEY` and `SERPAPI_API_KEY` in the Render dashboard. Keep the keys out of Git, the Docker image, and the browser. The supervisor exits if either key is missing or the local MCP service fails to start. The health check verifies the app is running; it does not make a paid provider request or validate provider billing.
+
+The shared public limit is 5 requests per minute, 2 active requests, and 30 chat requests per UTC day per API process. Search is limited to 10 fresh upstream requests per UTC day per MCP process, with a bounded five-minute cache. Requests are bounded in size, the generation output ceiling is 400 tokens with no paid retries, and outbound operations have timeouts. In-memory quotas reset on restart and are **not a billing guarantee**; configure provider-side spend limits and quotas as appropriate. [Free hosting may have cold starts and usage restrictions](https://render.com/docs/free). Do not enter personal or confidential text: the question may be shared with the relevant providers.

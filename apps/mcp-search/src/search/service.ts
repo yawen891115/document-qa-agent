@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { LRUCache } from "lru-cache";
 import type { McpSearchConfig } from "../config.js";
 import { MockSearchProvider } from "./mock.js";
@@ -11,13 +12,16 @@ import type { ProviderResult, SearchOptions, SearchProvider, SearchResponse } fr
  * queries that arrive at the same time share one upstream request.
  */
 export class SearchService {
+  private utcDay = -1;
+  private upstreamToday = 0;
+  private active = 0;
   private readonly cache: LRUCache<string, Promise<ProviderResult>>;
 
   constructor(
     readonly provider: SearchProvider,
-    { ttlMs = 600_000, maxEntries = 500 }: { ttlMs?: number; maxEntries?: number } = {},
+    private readonly limits: { ttlMs?: number; maxEntries?: number; daily?: number; concurrent?: number } = {},
   ) {
-    this.cache = new LRUCache({ max: maxEntries, ttl: ttlMs });
+    this.cache = new LRUCache({ max: limits.maxEntries ?? 500, ttl: limits.ttlMs ?? 600_000 });
   }
 
   get cacheSize(): number {
@@ -26,24 +30,35 @@ export class SearchService {
 
   async search(query: string, options: SearchOptions = {}): Promise<SearchResponse> {
     const started = performance.now();
-    const key = JSON.stringify([
+    options.signal?.throwIfAborted();
+    const queryIdentity = JSON.stringify([
       query.trim().toLowerCase().replace(/\s+/g, " "),
       options.num ?? 5,
       options.timeRange ?? "",
       options.location ?? "",
     ]);
 
+    const key = createHash("sha256").update(queryIdentity).digest("hex");
     let pending = this.cache.get(key);
     const cached = pending !== undefined;
     if (!pending) {
       // The upstream request is shared, so it must not be tied to one caller's abort signal.
-      pending = this.provider.search(query, { ...options, signal: undefined });
+      const day = Math.floor(Date.now() / 86_400_000);
+      if (day !== this.utcDay) { this.utcDay = day; this.upstreamToday = 0; }
+      if (this.upstreamToday >= (this.limits.daily ?? Infinity) || this.active >= (this.limits.concurrent ?? Infinity)) {
+        throw new Error("Search usage limit reached");
+      }
+      this.upstreamToday++;
+      this.active++;
+      pending = this.provider.search(query, { ...options, signal: undefined })
+        .then((result) => ({ ...result, query: "" }))
+        .finally(() => { this.active--; });
       this.cache.set(key, pending);
-      pending.catch(() => this.cache.delete(key)); // never cache failures
+      pending.catch(() => { if (this.cache.get(key) === pending) this.cache.delete(key); }); // never cache failures
     }
 
     const result = options.signal ? await raceAbort(pending, options.signal) : await pending;
-    return { ...result, cached, tookMs: Math.round(performance.now() - started) };
+    return { ...result, query, cached, tookMs: Math.round(performance.now() - started) };
   }
 }
 
@@ -66,5 +81,8 @@ export function createSearchService(config: McpSearchConfig): SearchService {
           hl: config.serpApiHl,
         })
       : new MockSearchProvider();
-  return new SearchService(provider, { ttlMs: config.cacheTtlMs, maxEntries: config.cacheMaxEntries });
+  return new SearchService(provider, {
+    ttlMs: config.cacheTtlMs, maxEntries: config.cacheMaxEntries,
+    ...(config.publicLiveDemo ? { daily: 10, concurrent: 2 } : {}),
+  });
 }

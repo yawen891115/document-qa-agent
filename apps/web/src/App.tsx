@@ -12,6 +12,9 @@ import type { Mode } from "./types";
 export function App() {
   const library = useLibrary();
   const speech = useSpeech();
+  const health = library.health;
+  const publicDemo = health?.publicDemo === true;
+  const publicLiveDemo = health?.publicLiveDemo === true;
   const [mode, setMode] = useState<Mode>("auto");
   const [draft, setDraft] = useState("");
   const [readAloud, setReadAloud] = useState(false);
@@ -40,9 +43,9 @@ export function App() {
       speech.cancel();
       sentences.current = new SentenceBuffer();
       setDraft("");
-      void chat.ask(question, mode);
+      void chat.ask(question, publicDemo && !publicLiveDemo ? "docs" : mode);
     },
-    [chat, mode, speech],
+    [chat, mode, publicDemo, publicLiveDemo, speech],
   );
 
   const voice = useVoiceInput({
@@ -57,7 +60,6 @@ export function App() {
     voice.toggle();
   };
 
-  const health = library.health;
   const offline = health?.llm.provider === "offline";
 
   return (
@@ -82,9 +84,9 @@ export function App() {
             <li className="status-item is-off">API not reachable, start it with npm run dev</li>
           ) : health ? (
             <>
-              <li className={`status-item${offline ? " is-warn" : ""}`}>{offline ? "Offline demo model" : health.llm.model}</li>
+              <li className={`status-item${offline ? " is-warn" : ""}`}>{publicLiveDemo ? "Public demo" : publicDemo ? "Public sample preview" : offline ? "Offline extractive model" : health.llm.model}</li>
               <li className={`status-item${health.webSearch.connected ? "" : " is-off"}`}>
-                {health.webSearch.connected ? "Web search connected" : "Web search unavailable"}
+                {publicDemo && !publicLiveDemo ? "Web search off" : health.webSearch.connected ? "Web search connected" : "Web search unavailable"}
               </li>
             </>
           ) : null}
@@ -93,6 +95,7 @@ export function App() {
 
       <Library
         open={libraryOpen}
+        readOnly={!health || publicDemo}
         documents={library.documents}
         chunks={library.chunks}
         working={library.working}
@@ -104,7 +107,20 @@ export function App() {
       />
 
       <main className="page">
-        {offline && !bannerHidden && (
+        {publicLiveDemo && (
+          <p className="banner">
+            Public demo: ask GPT about the fictional Northwind documents, the web, or both.
+            Questions may be sent to OpenAI and SerpAPI. Do not enter personal or confidential text.
+            Uploads and voice are disabled.
+          </p>
+        )}
+        {publicDemo && !publicLiveDemo && (
+          <p className="banner">
+            Public sample preview. Answers quote the bundled fictional Northwind documents without a generative model.
+            No uploads, voice, or web search. Please do not enter personal or confidential information.
+          </p>
+        )}
+        {offline && !publicDemo && !bannerHidden && (
           <p className="banner">
             Demo mode: no OpenAI key is set, so answers quote the best-matching sentences instead of being written by
             GPT-5. Add <code>OPENAI_API_KEY</code> to <code>.env</code> and restart to switch.{" "}
@@ -115,6 +131,8 @@ export function App() {
         )}
         <Conversation
           turns={chat.turns}
+          readOnly={!health || publicDemo}
+          publicLiveDemo={publicLiveDemo}
           hasDocuments={library.documents.length > 0}
           busy={chat.busy}
           onAsk={ask}
@@ -133,8 +151,10 @@ export function App() {
           onDraftChange={setDraft}
           onSubmit={ask}
           busy={chat.busy}
+          readOnlyPreview={!health || publicDemo}
+          allowWeb={publicLiveDemo || Boolean(health && !publicDemo)}
           onStop={chat.stop}
-          mode={mode}
+          mode={publicDemo && !publicLiveDemo ? "docs" : mode}
           onModeChange={setMode}
           voice={{ engine: voice.engine, state: voice.state, level: voice.level, toggle: toggleVoice }}
           readAloud={{

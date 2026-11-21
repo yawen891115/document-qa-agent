@@ -22,6 +22,8 @@ export interface PipelineConfig {
   topK: number;
   minScore: number;
   historyTurns: number;
+  publicDemo?: boolean;
+  publicLiveDemo?: boolean;
 }
 
 export interface AskOptions {
@@ -77,6 +79,8 @@ export class QAPipeline {
     const { signal } = options;
     const mode = options.mode ?? "auto";
     const history = (options.history ?? []).slice(-this.config.historyTurns);
+    // Previous client-supplied assistant text must not be treated as trusted model output.
+    const promptHistory = this.config.publicLiveDemo ? [] : history;
     const intent = analyzeQuestion(question);
     const hasDocuments = this.kb.chunkCount > 0;
     const timings: Timings = { totalMs: 0 };
@@ -129,7 +133,7 @@ export class QAPipeline {
         route === "web"
           ? []
           : retrieved
-              .filter(([, score]) => mode === "docs" || score >= floor)
+              .filter(([, score]) => (mode === "docs" && !this.config.publicLiveDemo) || score >= floor)
               .slice(0, this.config.topK)
               .map(([doc, score], i) => toDocSource(doc, score, i));
       const web = webOutcome?.sources ?? [];
@@ -143,14 +147,20 @@ export class QAPipeline {
         answer = `I couldn't search the web just now (${webOutcome.error}). Please try again, or ask about your documents.`;
         timings.firstTokenMs = elapsed();
         yield { type: "token", text: answer };
+      } else if (this.config.publicLiveDemo && !documents.length && !web.length) {
+        answer = "I couldn't find a relevant answer in the available sources.";
+        timings.firstTokenMs = elapsed();
+        yield { type: "token", text: answer };
       } else {
-        yield { type: "status", stage: "generation", message: "Writing the answer…" };
+        yield { type: "status", stage: "generation", message: this.config.publicDemo && !this.config.publicLiveDemo
+          ? "Extracting a matching passage…" : "Writing the answer…" };
         const messages = await qaPrompt.formatMessages({
           today: new Date().toDateString(),
-          history: toMessages(history),
+          history: toMessages(promptHistory),
           context: formatContext(documents, web),
-          question,
+          question: this.config.publicLiveDemo ? buildRetrievalQuery(question, history) : question,
         });
+        signal?.throwIfAborted();
         const stream = await this.chat.stream(messages, { signal });
         for await (const chunk of stream) {
           if (chunk.usage_metadata) {
@@ -173,8 +183,9 @@ export class QAPipeline {
       yield { type: "done", answer: answer.trim(), route, timings, usage, model: this.modelName };
     } catch (err) {
       if (signal?.aborted) return; // client went away
-      log.error("pipeline failed", { error: err instanceof Error ? err.message : String(err) });
-      yield { type: "error", message: err instanceof Error ? err.message : String(err) };
+      const message = this.config.publicDemo ? "Unable to answer this request" : err instanceof Error ? err.message : String(err);
+      log.error("pipeline failed", { error: message });
+      yield { type: "error", message };
     }
   }
 
@@ -202,21 +213,21 @@ export class QAPipeline {
   }
 
   private async retrieve(query: string): Promise<[DocumentInterface, number][]> {
-    let vector = this.queryEmbeddings.get(query);
+    let vector = this.config.publicDemo ? undefined : this.queryEmbeddings.get(query);
     if (!vector) {
       vector = await this.kb.store.embeddings.embedQuery(query);
-      this.queryEmbeddings.set(query, vector);
+      if (!this.config.publicDemo) this.queryEmbeddings.set(query, vector);
     }
     return this.kb.store.similaritySearchVectorWithScore(vector, this.config.topK);
   }
 
   private async searchWeb(question: string, signal?: AbortSignal): Promise<WebOutcome> {
     const started = performance.now();
-    const query = buildWebQuery(question);
+    const query = buildWebQuery(this.config.publicLiveDemo ? question.trim().replace(/\s+/g, " ").slice(0, 380) : question);
     try {
       const r = await this.web.search(query, { signal });
       const sources: WebSource[] = [];
-      if (r.answer) {
+      if (r.answer && !this.config.publicLiveDemo) {
         sources.push({
           id: "W1",
           title: "Search engine answer box",
@@ -226,22 +237,33 @@ export class QAPipeline {
         });
       }
       for (const item of r.results) {
+        if (this.config.publicLiveDemo && !isSafeSourceUrl(item.url)) continue;
         sources.push({
           id: `W${sources.length + 1}`,
-          title: item.title,
+          title: this.config.publicLiveDemo ? item.title.slice(0, 180) : item.title,
           url: item.url,
-          snippet: item.snippet,
-          source: item.source,
-          date: item.date,
+          snippet: this.config.publicLiveDemo ? item.snippet.slice(0, 550) : item.snippet,
+          source: this.config.publicLiveDemo ? item.source?.slice(0, 80) : item.source,
+          date: this.config.publicLiveDemo ? item.date?.slice(0, 50) : item.date,
         });
       }
       return { sources, ms: Math.round(performance.now() - started), cached: r.cached };
     } catch (err) {
-      const error = err instanceof Error ? err.message : String(err);
+      const error = this.config.publicLiveDemo
+        ? "Live search is temporarily unavailable or has reached its quota."
+        : err instanceof Error ? err.message : String(err);
       log.warn("web search failed", { error });
       return { sources: [], ms: Math.round(performance.now() - started), error };
     }
   }
+}
+
+function isSafeSourceUrl(value: string): boolean {
+  if (value.length > 1200) return false;
+  try {
+    const url = new URL(value);
+    return (url.protocol === "https:" || url.protocol === "http:") && !url.username && !url.password;
+  } catch { return false; }
 }
 
 /** Questions about "current"/"latest" facts search better with the current year attached. */

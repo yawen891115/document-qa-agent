@@ -15,6 +15,7 @@ const ACCEPT = ".pdf,.docx,.md,.markdown,.mdx,.rst,.txt";
 interface Props {
   /** Small screens: the library is a panel toggled from the header. */
   open: boolean;
+  readOnly: boolean;
   documents: DocumentRecord[];
   chunks: number;
   working: string | null;
@@ -25,7 +26,7 @@ interface Props {
   onDismissError: () => void;
 }
 
-export function Library({ open, documents, chunks, working, error, onUpload, onLoadSamples, onRemove, onDismissError }: Props) {
+export function Library({ open, readOnly, documents, chunks, working, error, onUpload, onLoadSamples, onRemove, onDismissError }: Props) {
   const [dragging, setDragging] = useState(false);
 
   const onDrop = (e: DragEvent) => {
@@ -44,7 +45,7 @@ export function Library({ open, documents, chunks, working, error, onUpload, onL
           : `${documents.length} ${documents.length === 1 ? "document" : "documents"}, ${chunks} passages indexed`}
       </p>
 
-      <label
+      {!readOnly && <label
         className={`dropzone${dragging ? " is-over" : ""}`}
         onDragOver={(e) => {
           e.preventDefault();
@@ -70,7 +71,7 @@ export function Library({ open, documents, chunks, working, error, onUpload, onL
           <strong>Add files</strong> or drop them here
           <small>PDF, Word, Markdown, reStructuredText or plain text, up to 20 MB</small>
         </span>
-      </label>
+      </label>}
 
       {working && (
         <p className="library-status" role="status">
@@ -87,7 +88,7 @@ export function Library({ open, documents, chunks, working, error, onUpload, onL
       )}
 
       {documents.length === 0 ? (
-        <div className="library-empty">
+        !readOnly && <div className="library-empty">
           <p>Try the sample set: a fictional company handbook and security policy, the PEP 8 style guide and the MCP specification.</p>
           <button type="button" className="button button--quiet" onClick={onLoadSamples} disabled={Boolean(working)}>
             Load sample documents
@@ -104,7 +105,7 @@ export function Library({ open, documents, chunks, working, error, onUpload, onL
                   {[KIND_LABEL[doc.kind], doc.pages ? `${doc.pages} pages` : "", `${doc.chunks} passages`].filter(Boolean).join(", ")}
                 </p>
               </div>
-              <button
+              {!readOnly && <button
                 type="button"
                 className="icon-button"
                 onClick={() => onRemove(doc)}
@@ -113,7 +114,7 @@ export function Library({ open, documents, chunks, working, error, onUpload, onL
                 title="Remove from library"
               >
                 <Trash2 size={16} aria-hidden="true" />
-              </button>
+              </button>}
             </li>
           ))}
         </ul>

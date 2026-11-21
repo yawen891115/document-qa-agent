@@ -15,6 +15,8 @@ interface Props {
   onDraftChange: (text: string) => void;
   onSubmit: (text: string) => void;
   busy: boolean;
+  readOnlyPreview: boolean;
+  allowWeb: boolean;
   onStop: () => void;
   mode: Mode;
   onModeChange: (mode: Mode) => void;
@@ -28,7 +30,7 @@ const subscribeNarrow = (cb: () => void) => {
   return () => narrowQuery?.removeEventListener("change", cb);
 };
 
-export function Composer({ draft, onDraftChange, onSubmit, busy, onStop, mode, onModeChange, voice, readAloud }: Props) {
+export function Composer({ draft, onDraftChange, onSubmit, busy, readOnlyPreview, allowWeb, onStop, mode, onModeChange, voice, readAloud }: Props) {
   const input = useRef<HTMLTextAreaElement>(null);
 
   // Grow the textarea with its content, up to a limit.
@@ -63,7 +65,7 @@ export function Composer({ draft, onDraftChange, onSubmit, busy, onStop, mode, o
   return (
     <form className="composer" onSubmit={submit}>
       <div className="composer-row">
-        <MicOrb state={voice.state} level={voice.level} onClick={voice.toggle} disabled={voice.engine === "none" || busy} />
+        {!readOnlyPreview && <MicOrb state={voice.state} level={voice.level} onClick={voice.toggle} disabled={voice.engine === "none" || busy} />}
         <label className="visually-hidden" htmlFor="question">
           Question
         </label>
@@ -72,8 +74,9 @@ export function Composer({ draft, onDraftChange, onSubmit, busy, onStop, mode, o
           ref={input}
           className={`composer-input${listening ? " is-listening" : ""}`}
           rows={1}
+          maxLength={readOnlyPreview ? 512 : 2000}
           value={draft}
-          placeholder={placeholder}
+          placeholder={readOnlyPreview ? (allowWeb ? "Ask about documents or the web" : "Ask about the sample documents") : placeholder}
           onChange={(e) => onDraftChange(e.target.value)}
           onKeyDown={onKeyDown}
           readOnly={listening}
@@ -90,16 +93,16 @@ export function Composer({ draft, onDraftChange, onSubmit, busy, onStop, mode, o
       </div>
 
       <div className="composer-options">
-        <div className="modes" role="radiogroup" aria-label="Where answers come from">
+        {allowWeb && <div className="modes" role="radiogroup" aria-label="Where answers come from">
           {MODES.map((m) => (
             <label key={m.value} title={m.hint}>
               <input type="radio" name="mode" value={m.value} checked={mode === m.value} onChange={() => onModeChange(m.value)} />
               <span>{m.label}</span>
             </label>
           ))}
-        </div>
+        </div>}
 
-        {readAloud.supported && (
+        {!readOnlyPreview && readAloud.supported && (
           <div className="read-aloud">
             <label className="switch">
               <input type="checkbox" checked={readAloud.enabled} onChange={(e) => readAloud.onToggle(e.target.checked)} />
@@ -114,11 +117,11 @@ export function Composer({ draft, onDraftChange, onSubmit, busy, onStop, mode, o
           </div>
         )}
 
-        <p className="voice-note">
+        {!readOnlyPreview && <p className="voice-note">
           {voice.engine === "browser" && "Voice is transcribed in your browser."}
           {voice.engine === "server" && "Voice is transcribed on the server."}
           {voice.engine === "none" && "This browser doesn't support voice input."}
-        </p>
+        </p>}
       </div>
     </form>
   );

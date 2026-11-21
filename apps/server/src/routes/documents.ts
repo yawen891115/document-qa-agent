@@ -13,12 +13,14 @@ export function decodeFilename(name: string): string {
 
 export function documentsRouter(s: Services): Router {
   const router = Router();
-  const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: s.config.maxUploadBytes, files: 10 } });
 
   router.get("/", (_req, res) => {
     res.json({ documents: s.kb.list(), chunks: s.kb.chunkCount });
   });
 
+  if (s.config.publicDemo) return router;
+
+  const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: s.config.maxUploadBytes, files: 10 } });
   router.post("/", upload.array("files", 10), async (req, res) => {
     const files = (req.files as Express.Multer.File[] | undefined) ?? [];
     if (files.length === 0) {

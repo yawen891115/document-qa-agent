@@ -38,14 +38,15 @@ export class McpWebSearchClient implements WebSearchTool {
 
   constructor(
     private readonly url: string,
-    private readonly options: { timeoutMs: number; numResults: number; fetch?: typeof fetch },
+    private readonly options: { timeoutMs: number; numResults: number; bounded?: boolean; fetch?: typeof fetch },
   ) {}
 
   async search(query: string, { signal }: { signal?: AbortSignal } = {}): Promise<WebSearchResult> {
     const client = await this.getClient();
+    signal?.throwIfAborted();
     try {
       const result = await client.callTool(
-        { name: "web_search", arguments: { query, num_results: this.options.numResults } },
+        { name: "web_search", arguments: { query: this.options.bounded ? query.slice(0, 400) : query, num_results: this.options.numResults } },
         { timeout: this.options.timeoutMs, signal },
       );
       if (result.isError) {
@@ -81,7 +82,13 @@ export class McpWebSearchClient implements WebSearchTool {
       const client = new Client({ name: "docqa-backend", version: "1.0.0" }, { versionNegotiation: { mode: "auto" } });
       const transport = new StreamableHTTPClientTransport(
         new URL(this.url),
-        this.options.fetch ? { fetch: this.options.fetch } : undefined,
+        this.options.bounded ? { fetch: (input, init) => {
+          const deadline = AbortSignal.timeout(6000);
+          return (this.options.fetch ?? fetch)(input, {
+            ...init, signal: init?.signal ? AbortSignal.any([init.signal, deadline]) : deadline,
+            redirect: "error",
+          });
+        } } : this.options.fetch ? { fetch: this.options.fetch } : undefined,
       );
       await client.connect(transport);
       this.client = client;

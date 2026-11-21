@@ -24,6 +24,7 @@ RUN npm ci --omit=dev --workspace=@docqa/server --workspace=@docqa/mcp-search &&
 COPY --from=build /app/apps/server/dist apps/server/dist
 COPY --from=build /app/apps/mcp-search/dist apps/mcp-search/dist
 COPY --from=build /app/apps/web/dist apps/web/dist
+COPY scripts/start-render.mjs scripts/start-render.mjs
 COPY data/samples data/samples
 COPY data/eval data/eval
 RUN mkdir -p data/index && chown -R node:node data

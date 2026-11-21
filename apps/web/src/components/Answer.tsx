@@ -22,7 +22,9 @@ function hostname(url: string) {
   }
 }
 
-export function Answer({ turn, isLatest, onRetry }: { turn: Turn; isLatest: boolean; onRetry: () => void }) {
+export function Answer({ turn, restrictedLinks, isLatest, onRetry }: {
+  turn: Turn; restrictedLinks?: boolean; isLatest: boolean; onRetry: () => void;
+}) {
   const [active, setActive] = useState<string | null>(null);
   const sources = useRef<HTMLDetailsElement>(null);
   const known = new Set([...turn.documents.map((d) => d.id), ...turn.web.map((w) => w.id)]);
@@ -48,6 +50,7 @@ export function Answer({ turn, isLatest, onRetry }: { turn: Turn; isLatest: bool
           </button>
         );
       }
+      if (restrictedLinks) return <span>{children}</span>;
       return (
         <a href={href} target="_blank" rel="noreferrer">
           {children as ReactNode}
@@ -68,7 +71,7 @@ export function Answer({ turn, isLatest, onRetry }: { turn: Turn; isLatest: bool
 
       {turn.answer && (
         <div className={`answer${turn.status === "streaming" ? " is-streaming" : ""}`} aria-live={isLatest ? "polite" : undefined}>
-          <Markdown components={components}>{linkCitations(turn.answer)}</Markdown>
+          <Markdown components={restrictedLinks ? { ...components, img: () => null } : components}>{linkCitations(turn.answer)}</Markdown>
         </div>
       )}
 

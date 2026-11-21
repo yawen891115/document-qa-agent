@@ -50,20 +50,45 @@ export class SerpApiProvider implements SearchProvider {
     const res = await this.fetchImpl(`${ENDPOINT}?${params}`, {
       signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
       headers: { Accept: "application/json" },
+      redirect: "error",
     }).catch((err: unknown) => {
       const timedOut = err instanceof Error && err.name === "TimeoutError";
-      throw new SearchError(timedOut ? `SerpAPI timed out after ${this.options.timeoutMs} ms` : `SerpAPI request failed: ${String(err)}`);
+      throw new SearchError(timedOut ? `SerpAPI timed out after ${this.options.timeoutMs} ms` : "SerpAPI request failed");
     });
 
-    const body = (await res.json().catch(() => ({}))) as SerpApiResponse;
+    const body = await readBoundedJson(res);
     if (body.error) {
       // SerpAPI reports "no results" as an error; for us it is just an empty result list.
       if (/hasn't returned any results/i.test(body.error)) return { query, provider: this.name, results: [] };
-      throw new SearchError(`SerpAPI: ${body.error}`, res.status);
+      throw new SearchError("SerpAPI rejected the search request", res.status);
     }
     if (!res.ok) throw new SearchError(`SerpAPI HTTP ${res.status}`, res.status);
 
     return normalizeSerpApi(query, body, num);
+  }
+}
+
+/** Bound decoded upstream data before parsing; compressed transport size is not enough. */
+async function readBoundedJson(res: Response): Promise<SerpApiResponse> {
+  if (!res.body) throw new SearchError("SerpAPI returned an empty response", res.status);
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let size = 0;
+  let text = "";
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > 512 * 1024) {
+        await reader.cancel();
+        throw new SearchError("SerpAPI response exceeded the size limit", res.status);
+      }
+      text += decoder.decode(value, { stream: true });
+    }
+    return JSON.parse(text + decoder.decode()) as SerpApiResponse;
+  } finally {
+    reader.releaseLock();
   }
 }
 

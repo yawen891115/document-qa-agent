@@ -18,13 +18,15 @@ const EXAMPLES: { kind: "docs" | "web" | "hybrid"; label: string; questions: str
 
 interface Props {
   turns: Turn[];
+  readOnly: boolean;
+  publicLiveDemo: boolean;
   hasDocuments: boolean;
   busy: boolean;
   onAsk: (question: string) => void;
   onLoadSamples: () => void;
 }
 
-export function Conversation({ turns, hasDocuments, busy, onAsk, onLoadSamples }: Props) {
+export function Conversation({ turns, readOnly, publicLiveDemo, hasDocuments, busy, onAsk, onLoadSamples }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
 
   // The newest turn is at least one screen tall, so a new question can scroll to the top
@@ -51,12 +53,13 @@ export function Conversation({ turns, hasDocuments, busy, onAsk, onLoadSamples }
       <div className="conversation-inner">
         {turns.length === 0 ? (
           <section className="empty">
-            <h1>Ask your documents.</h1>
+            <h1>{publicLiveDemo ? "Ask the sample documents or the web." : readOnly ? "Ask the sample documents." : "Ask your documents."}</h1>
             <p className="empty-lede">
-              Speak or type a question. Answers quote the passages they come from, and search the web when your files
-              don't cover it.
+              {publicLiveDemo ? "Ask a question and inspect the cited documents or search results." : readOnly
+                ? "Try a question about the fictional company's policies and check the cited passages."
+                : "Speak or type a question. Answers quote the passages they come from, and search the web when your files don't cover it."}
             </p>
-            {!hasDocuments && (
+            {!readOnly && !hasDocuments && (
               <div className="empty-library">
                 <p>Your library is empty. Add your own files on the left, or start with the sample documents.</p>
                 <button type="button" className="button button--primary" onClick={onLoadSamples}>
@@ -65,11 +68,11 @@ export function Conversation({ turns, hasDocuments, busy, onAsk, onLoadSamples }
               </div>
             )}
             <div className="examples">
-              {EXAMPLES.map((group) => (
+              {EXAMPLES.filter((group) => !readOnly || publicLiveDemo || group.kind === "docs").map((group) => (
                 <div key={group.kind} className="example-group">
                   <p className="example-label">
                     <span className={`route-mark route-mark--${group.kind}`} aria-hidden="true" />
-                    {group.label}
+                    {readOnly && !publicLiveDemo ? "Try a sample question" : group.label}
                   </p>
                   {group.questions.map((q) => (
                     <button key={q} type="button" className="example" disabled={busy} onClick={() => onAsk(q)}>
@@ -84,7 +87,7 @@ export function Conversation({ turns, hasDocuments, busy, onAsk, onLoadSamples }
           turns.map((turn, i) => (
             <article key={turn.id} id={turn.id} className="turn">
               <h2 className="question">{turn.question}</h2>
-              <Answer turn={turn} isLatest={i === turns.length - 1} onRetry={() => onAsk(turn.question)} />
+              <Answer turn={turn} restrictedLinks={publicLiveDemo} isLatest={i === turns.length - 1} onRetry={() => onAsk(turn.question)} />
             </article>
           ))
         )}

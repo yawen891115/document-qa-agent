@@ -31,7 +31,11 @@ export function createModels(cfg: AppConfig["llm"], opts: { fetch?: typeof fetch
     };
   }
 
-  const configuration = { baseURL: cfg.baseUrl, ...(opts.fetch ? { fetch: opts.fetch } : {}) };
+  const configuration = {
+    baseURL: cfg.publicLiveDemo ? "https://api.openai.com/v1" : cfg.baseUrl,
+    ...(cfg.publicLiveDemo ? { maxRetries: 0, timeout: 20_000 } : {}),
+    ...(opts.fetch ? { fetch: opts.fetch } : {}),
+  };
 
   const chat = new ChatOpenAI({
     model: cfg.model,
@@ -40,12 +44,12 @@ export function createModels(cfg: AppConfig["llm"], opts: { fetch?: typeof fetch
     maxTokens: cfg.maxOutputTokens,
     // Low latency: GPT-5 with minimal reasoning and terse output is fast enough for voice.
     ...(isGpt5Family(cfg.model) ? { reasoning: { effort: cfg.reasoningEffort }, verbosity: cfg.verbosity } : {}),
-    maxRetries: 1,
-    timeout: 30_000,
+    maxRetries: cfg.publicLiveDemo ? 0 : 1,
+    timeout: cfg.publicLiveDemo ? 20_000 : 30_000,
     configuration,
   });
 
-  const embeddings = new OpenAIEmbeddings({
+  const embeddings = cfg.publicLiveDemo ? new HashingEmbeddings() : new OpenAIEmbeddings({
     model: cfg.embeddingModel,
     apiKey: cfg.apiKey,
     batchSize: 256,
@@ -58,7 +62,7 @@ export function createModels(cfg: AppConfig["llm"], opts: { fetch?: typeof fetch
     chat,
     embeddings,
     chatModelName: cfg.model,
-    embeddingModelName: cfg.embeddingModel,
-    openai: new OpenAI({ apiKey: cfg.apiKey, baseURL: cfg.baseUrl, ...(opts.fetch ? { fetch: opts.fetch } : {}) }),
+    embeddingModelName: cfg.publicLiveDemo ? (embeddings as HashingEmbeddings).modelName : cfg.embeddingModel,
+    openai: cfg.publicLiveDemo ? undefined : new OpenAI({ apiKey: cfg.apiKey, baseURL: cfg.baseUrl, ...(opts.fetch ? { fetch: opts.fetch } : {}) }),
   };
 }

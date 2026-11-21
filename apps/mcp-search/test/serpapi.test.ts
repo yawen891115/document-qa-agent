@@ -82,7 +82,7 @@ describe("SerpApiProvider", () => {
       fetchImpl: async () => Response.json({ error: "Invalid API key." }, { status: 401 }),
     });
     await expect(provider.search("x")).rejects.toThrow(SearchError);
-    await expect(provider.search("x")).rejects.toThrow(/Invalid API key/);
+    await expect(provider.search("x")).rejects.toThrow(/rejected the search request/);
   });
 
   it("times out slow requests", async () => {

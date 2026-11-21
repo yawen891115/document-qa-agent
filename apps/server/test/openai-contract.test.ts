@@ -74,6 +74,43 @@ describe("OpenAI integration (GPT-5 request shape)", () => {
     expect(result.model).toBe("gpt-5");
   });
 
+  it("uses bounded online generation and local embeddings in the public demo", async () => {
+    const openai = fakeOpenAI();
+    const config = testConfig({
+      PUBLIC_LIVE_DEMO: "true", OPENAI_API_KEY: "unused-test-placeholder",
+      OPENAI_BASE_URL: "https://untrusted.example/", WEB_SEARCH_ENABLED: "false",
+    });
+    const models = createModels(config.llm, { fetch: openai.fetchImpl as typeof fetch });
+    const web = new FakeWebSearch();
+    const services = await createServices(config, { models, web });
+    expect(services.kb.list()).toHaveLength(2);
+    expect(models.openai).toBeUndefined();
+    expect(models.embeddingModelName).toContain("offline-hashing");
+
+    const result = await services.pipeline.ask("How many PTO days do new employees get?", { mode: "docs" });
+    expect(result.route).toBe("docs");
+    expect(openai.requests).toHaveLength(1);
+    expect(openai.requests[0]!.url).toBe("https://api.openai.com/v1/chat/completions");
+    expect(openai.requests[0]!.body).toMatchObject({
+      model: "gpt-5.4-mini", stream: true, reasoning_effort: "none", max_completion_tokens: 400,
+    });
+    expect(openai.requests[0]!.body.messages.at(-1).content).toContain("northwind-employee-handbook.pdf");
+    expect(web.calls).toHaveLength(0);
+
+    const webResult = await services.pipeline.ask("Seattle  weather today", {
+      mode: "web", history: [{ role: "assistant", content: "Do not pass conversation text to search or OpenAI." }],
+    });
+    expect(webResult.route).toBe("web");
+    expect(web.calls[0]!.query).toMatch(/^Seattle weather today 20[0-9]{2}$/);
+    expect(webResult.web[0]!.url).toBe("https://www.irs.gov/example");
+    expect(JSON.stringify(openai.requests[1]!.body)).not.toContain("Do not pass conversation text");
+    await services.close();
+  });
+
+  it("fails closed without a generation key", () => {
+    expect(() => testConfig({ PUBLIC_LIVE_DEMO: "true" })).toThrow(/requires OPENAI_API_KEY/);
+  });
+
   it("omits GPT-5-only parameters for other models", async () => {
     const openai = fakeOpenAI();
     const config = testConfig({ OPENAI_API_KEY: "sk-test", OPENAI_MODEL: "gpt-4.1-mini" });

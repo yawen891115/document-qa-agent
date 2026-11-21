@@ -80,6 +80,8 @@ export interface DocumentRecord {
 /** GET /api/health */
 export interface HealthResponse {
   status: "ok";
+  publicDemo?: boolean;
+  publicLiveDemo?: boolean;
   llm: { provider: "openai" | "offline"; model: string; embeddingModel: string };
   webSearch: { enabled: boolean; connected: boolean; url: string; tools: string[]; error?: string };
   voice: { serverTranscription: boolean };

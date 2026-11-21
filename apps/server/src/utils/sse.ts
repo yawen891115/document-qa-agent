@@ -1,10 +1,10 @@
 import type { Response } from "express";
 
 /** Starts a Server-Sent Events response. POST + fetch() on the client, since EventSource is GET-only. */
-export function openSse(res: Response): void {
+export function openSse(res: Response, noStore = false): void {
   res.status(200).set({
     "Content-Type": "text/event-stream; charset=utf-8",
-    "Cache-Control": "no-cache, no-transform",
+    "Cache-Control": noStore ? "no-store, no-transform" : "no-cache, no-transform",
     Connection: "keep-alive",
     "X-Accel-Buffering": "no", // disable proxy buffering (nginx)
   });

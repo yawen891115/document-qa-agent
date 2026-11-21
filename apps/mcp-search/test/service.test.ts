@@ -51,6 +51,18 @@ describe("SearchService", () => {
     expect(provider.calls).toBe(2);
   });
 
+  it("rejects excess fresh queries while preserving cache hits", async () => {
+    const provider = new CountingProvider();
+    const service = new SearchService(provider, { daily: 2, concurrent: 1 });
+    const first = service.search("first");
+    await expect(service.search("different")).rejects.toThrow(/limit/);
+    await first;
+    await service.search("second");
+    await expect(service.search("third")).rejects.toThrow(/limit/);
+    await expect(service.search("first")).resolves.toMatchObject({ cached: true });
+    expect(provider.calls).toBe(2);
+  });
+
   it("lets a caller abort without cancelling the shared request", async () => {
     const provider = new CountingProvider();
     const service = new SearchService(provider);

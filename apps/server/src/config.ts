@@ -49,48 +49,56 @@ const EnvSchema = z.object({
   DATA_DIR: optionalString,
   MAX_UPLOAD_MB: num(20),
   SERVE_WEB: bool(true),
+  PUBLIC_DEMO: bool(false),
+  PUBLIC_LIVE_DEMO: bool(false),
 });
 
 export type AppConfig = ReturnType<typeof loadConfig>;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
   const e = EnvSchema.parse(env);
-  const provider = e.LLM_PROVIDER ?? (e.OPENAI_API_KEY ? "openai" : "offline");
+  if (e.PUBLIC_DEMO && e.PUBLIC_LIVE_DEMO) throw new Error("Select one hosted mode");
+  const publicDemo = e.PUBLIC_DEMO || e.PUBLIC_LIVE_DEMO;
+  const provider = e.PUBLIC_LIVE_DEMO ? "openai" : e.PUBLIC_DEMO ? "offline" :
+    e.LLM_PROVIDER ?? (e.OPENAI_API_KEY ? "openai" : "offline");
   if (provider === "openai" && !e.OPENAI_API_KEY) {
     throw new Error("LLM_PROVIDER=openai requires OPENAI_API_KEY");
   }
   const dataDir = e.DATA_DIR ?? `${REPO_ROOT}data`;
 
   return {
+    publicDemo,
+    publicLiveDemo: e.PUBLIC_LIVE_DEMO,
     port: e.PORT,
     host: e.HOST,
     logLevel: e.LOG_LEVEL,
     corsOrigin: e.CORS_ORIGIN.split(",").map((o) => o.trim()),
     llm: {
       provider,
-      apiKey: e.OPENAI_API_KEY,
-      baseUrl: e.OPENAI_BASE_URL,
-      model: e.OPENAI_MODEL,
-      reasoningEffort: e.OPENAI_REASONING_EFFORT,
+      publicLiveDemo: e.PUBLIC_LIVE_DEMO,
+      apiKey: e.PUBLIC_DEMO ? undefined : e.OPENAI_API_KEY,
+      baseUrl: publicDemo ? undefined : e.OPENAI_BASE_URL,
+      model: e.PUBLIC_LIVE_DEMO ? "gpt-5.4-mini" : e.OPENAI_MODEL,
+      reasoningEffort: e.PUBLIC_LIVE_DEMO ? "none" as const : e.OPENAI_REASONING_EFFORT,
       verbosity: e.OPENAI_VERBOSITY,
-      maxOutputTokens: e.OPENAI_MAX_OUTPUT_TOKENS,
+      maxOutputTokens: e.PUBLIC_LIVE_DEMO ? 400 : e.OPENAI_MAX_OUTPUT_TOKENS,
       embeddingModel: e.OPENAI_EMBEDDING_MODEL,
       transcribeModel: e.OPENAI_TRANSCRIBE_MODEL,
     },
     webSearch: {
-      enabled: e.WEB_SEARCH_ENABLED,
-      mcpServerUrl: e.MCP_SERVER_URL,
-      timeoutMs: e.WEB_SEARCH_TIMEOUT_MS,
-      numResults: e.WEB_SEARCH_RESULTS,
+      enabled: e.PUBLIC_LIVE_DEMO || (!publicDemo && e.WEB_SEARCH_ENABLED),
+      mcpServerUrl: e.PUBLIC_LIVE_DEMO ? "http://127.0.0.1:8787/mcp" : e.MCP_SERVER_URL,
+      timeoutMs: e.PUBLIC_LIVE_DEMO ? 5500 : e.WEB_SEARCH_TIMEOUT_MS,
+      numResults: e.PUBLIC_LIVE_DEMO ? 3 : e.WEB_SEARCH_RESULTS,
     },
     rag: {
-      topK: e.RAG_TOP_K,
+      topK: e.PUBLIC_LIVE_DEMO ? 3 : publicDemo ? 5 : e.RAG_TOP_K,
       // Cosine-similarity threshold for "the documents are relevant". It depends on the
       // embedding model: OpenAI text-embedding-3 scores are lower than the offline hashing model's.
-      minScore: e.RAG_MIN_SCORE ?? (provider === "openai" ? 0.3 : 0.12),
-      chunkSize: e.CHUNK_SIZE,
-      chunkOverlap: e.CHUNK_OVERLAP,
-      historyTurns: e.HISTORY_TURNS,
+      minScore: e.PUBLIC_LIVE_DEMO ? 0.12 : e.RAG_MIN_SCORE ?? (provider === "openai" ? 0.3 : 0.12),
+      chunkSize: e.PUBLIC_LIVE_DEMO ? 850 : e.CHUNK_SIZE,
+      chunkOverlap: e.PUBLIC_LIVE_DEMO ? 150 : e.CHUNK_OVERLAP,
+      historyTurns: publicDemo ? 6 : e.HISTORY_TURNS,
     },
     paths: {
       dataDir,
@@ -99,6 +107,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
       webDist: `${REPO_ROOT}apps/web/dist`,
     },
     maxUploadBytes: e.MAX_UPLOAD_MB * 1024 * 1024,
-    serveWeb: e.SERVE_WEB,
+    serveWeb: publicDemo || e.SERVE_WEB,
   };
 }

@@ -86,14 +86,14 @@ export class HashingEmbeddings extends Embeddings {
 }
 
 export const OFFLINE_NOTE =
-  "_Offline demo mode: extracted from the sources without an LLM. Set OPENAI_API_KEY to answer with GPT-5._";
+  "_Offline mode: extracted from the available sources without a generative model._";
 
 /** Builds an extractive answer from the CONTEXT/QUESTION prompt produced by rag/prompts.ts. */
 export function extractiveAnswer(prompt: string): string {
   const question = prompt.split(QUESTION_MARKER).at(-1)?.trim() ?? prompt;
   const sources = parseContextSources(prompt);
   if (sources.length === 0) {
-    return `I couldn't find anything about that in your documents or in the web results.\n\n${OFFLINE_NOTE}`;
+    return `I couldn't find a relevant answer in the available sources.\n\n${OFFLINE_NOTE}`;
   }
 
   const qTokens = new Set(tokenize(question));

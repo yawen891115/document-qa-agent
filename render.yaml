@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: document-qa-agent
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeployTrigger: "off"
+    dockerCommand: node scripts/start-render.mjs
+    envVars:
+      - key: HOST
+        value: "0.0.0.0"
+      - key: PUBLIC_LIVE_DEMO
+        value: "true"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SERPAPI_API_KEY
+        sync: false
+      - key: LOG_LEVEL
+        value: warn
