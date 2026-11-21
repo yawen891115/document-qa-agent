@@ -1,0 +1,39 @@
+# docker compose up --build   ->   http://localhost:3000
+# Keys come from your shell or from .env next to this file.
+services:
+  mcp-search:
+    build: .
+    command: ["node", "apps/mcp-search/dist/index.js"]
+    environment:
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: "8787"
+      MCP_ALLOWED_HOSTS: mcp-search,localhost,127.0.0.1
+      SERPAPI_API_KEY: ${SERPAPI_API_KEY:-}
+    ports:
+      - "8787:8787" # optional: lets MCP Inspector or Claude Desktop reach the server
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: .
+    command: ["node", "apps/server/dist/index.js"]
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3000"
+      MCP_SERVER_URL: http://mcp-search:8787/mcp
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5}
+      OPENAI_REASONING_EFFORT: ${OPENAI_REASONING_EFFORT:-minimal}
+    ports:
+      - "3000:3000"
+    volumes:
+      - docqa-index:/app/data/index
+    depends_on:
+      mcp-search:
+        condition: service_healthy
+
+volumes:
+  docqa-index:

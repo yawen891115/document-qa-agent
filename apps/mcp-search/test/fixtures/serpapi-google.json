@@ -1,0 +1,21 @@
+{
+  "search_metadata": { "id": "fixture", "status": "Success", "total_time_taken": 1.21 },
+  "search_parameters": { "engine": "google", "q": "irs 401k contribution limit", "gl": "us", "hl": "en" },
+  "answer_box": {
+    "type": "organic_result",
+    "title": "401(k) limit increases",
+    "link": "https://www.irs.gov/newsroom/example",
+    "snippet": "The amount individuals can contribute to their 401(k) plans has increased.",
+    "snippet_highlighted_words": ["has increased"]
+  },
+  "knowledge_graph": { "title": "401(k)", "description": "A 401(k) is a defined-contribution retirement account." },
+  "top_stories": [
+    { "title": "IRS announces new retirement limits", "link": "https://news.example.com/irs-limits", "source": "Example News", "date": "2 days ago" }
+  ],
+  "organic_results": [
+    { "position": 1, "title": "401(k) limit increases | Internal Revenue Service", "link": "https://www.irs.gov/newsroom/example", "snippet": "The amount individuals can contribute to their 401(k) plans has increased.", "source": "IRS" },
+    { "position": 2, "title": "Retirement topics - Contributions", "link": "https://www.irs.gov/retirement-plans/contributions", "snippet_highlighted_words": ["elective deferrals", "limit"] },
+    { "position": 3, "title": "Duplicate of a top story", "link": "https://news.example.com/irs-limits", "snippet": "Same URL as the top story." },
+    { "position": 4, "title": "Missing link is skipped" }
+  ]
+}

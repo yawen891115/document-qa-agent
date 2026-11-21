@@ -1,0 +1,27 @@
+{"id": "hb-01", "question": "How many days a week are employees expected to work in the office, and which days?", "expected_route": "docs", "expected_source": "northwind-employee-handbook.pdf", "answer_keywords": ["three|3", "Tuesday", "Thursday"]}
+{"id": "hb-02", "question": "How many PTO days does a new employee get per year?", "expected_route": "docs", "expected_source": "northwind-employee-handbook.pdf", "answer_keywords": ["18"]}
+{"id": "hb-03", "question": "How does the company 401(k) match work?", "expected_route": "docs", "expected_source": "northwind-employee-handbook.pdf", "answer_keywords": ["4%", "50%", "5%"]}
+{"id": "hb-04", "question": "How long is paid parental leave?", "expected_route": "docs", "expected_source": "northwind-employee-handbook.pdf", "answer_keywords": ["16 weeks"]}
+{"id": "hb-05", "question": "What is the daily meal limit when I travel for work?", "expected_route": "docs", "expected_source": "northwind-employee-handbook.pdf", "answer_keywords": ["$75"]}
+{"id": "hb-06", "question": "Do I need a receipt for a $30 taxi ride?", "expected_route": "docs", "expected_source": "northwind-employee-handbook.pdf", "answer_keywords": ["$25"]}
+{"id": "hb-07", "question": "When are performance reviews held?", "expected_route": "docs", "expected_source": "northwind-employee-handbook.pdf", "answer_keywords": ["April", "October"]}
+{"id": "hb-08", "question": "How big is the learning and development budget?", "expected_route": "docs", "expected_source": "northwind-employee-handbook.pdf", "answer_keywords": ["$2,000|2000"]}
+{"id": "sec-01", "question": "How quickly do I have to report a phishing email?", "expected_route": "docs", "expected_source": "northwind-security-policy.docx", "answer_keywords": ["1 hour|one hour"]}
+{"id": "sec-02", "question": "What is the minimum password length?", "expected_route": "docs", "expected_source": "northwind-security-policy.docx", "answer_keywords": ["14"]}
+{"id": "sec-03", "question": "Within how many days must operating system updates be installed?", "expected_route": "docs", "expected_source": "northwind-security-policy.docx", "answer_keywords": ["14 days", "72 hours"]}
+{"id": "pep-01", "question": "What is the maximum line length recommended by PEP 8?", "expected_route": "docs", "expected_source": "pep-0008-style-guide.rst", "answer_keywords": ["79"]}
+{"id": "pep-02", "question": "How many spaces per indentation level does PEP 8 recommend?", "expected_route": "docs", "expected_source": "pep-0008-style-guide.rst", "answer_keywords": ["4|four"]}
+{"id": "pep-03", "question": "How should constants be named according to PEP 8?", "expected_route": "docs", "expected_source": "pep-0008-style-guide.rst", "answer_keywords": ["capital|upper|MAX_OVERFLOW"]}
+{"id": "pep-04", "question": "According to PEP 8, how should you compare a variable to None?", "expected_route": "docs", "expected_source": "pep-0008-style-guide.rst", "answer_keywords": ["is None|is not|`is`| is "]}
+{"id": "mcp-01", "question": "What message format does the Model Context Protocol use?", "expected_route": "docs", "expected_source": "mcp-specification-2026-07-28.md", "answer_keywords": ["JSON-RPC"]}
+{"id": "mcp-02", "question": "Which transport mechanisms does the MCP specification define?", "expected_route": "docs", "expected_source": "mcp-specification-2026-07-28.md", "answer_keywords": ["stdio", "Streamable HTTP"]}
+{"id": "mcp-03", "question": "In the MCP stdio transport, where may a server write its logs?", "expected_route": "docs", "expected_source": "mcp-specification-2026-07-28.md", "answer_keywords": ["stderr"]}
+{"id": "mcp-04", "question": "What happened to protocol-level sessions in the 2026-07-28 MCP spec revision?", "expected_route": "docs", "expected_source": "mcp-specification-2026-07-28.md", "answer_keywords": ["Mcp-Session-Id|stateless|removed"]}
+{"id": "hy-01", "question": "How does Northwind's 401(k) match compare with this year's IRS 401(k) contribution limit?", "expected_route": "hybrid", "expected_source": "northwind-employee-handbook.pdf", "answer_keywords": ["4%|5%"]}
+{"id": "hy-02", "question": "Our travel policy reimburses personal car use at the IRS standard mileage rate. What is the current rate?", "expected_route": "hybrid", "expected_source": "northwind-employee-handbook.pdf", "answer_keywords": ["IRS"]}
+{"id": "hy-03", "question": "Is 18 days of PTO for new hires above the US average for private-sector workers?", "expected_route": "hybrid", "expected_source": "northwind-employee-handbook.pdf", "answer_keywords": ["18"]}
+{"id": "hy-04", "question": "Is our copy of the MCP spec the latest revision, and what does it say about sessions?", "expected_route": "hybrid", "expected_source": "mcp-specification-2026-07-28.md", "answer_keywords": ["2026-07-28"]}
+{"id": "web-01", "question": "What's the weather forecast for Seattle today?", "expected_route": "web", "expected_source": null, "answer_keywords": []}
+{"id": "web-02", "question": "What are the latest AI news headlines this week?", "expected_route": "web", "expected_source": null, "answer_keywords": []}
+{"id": "web-03", "question": "What is NVIDIA's current stock price?", "expected_route": "web", "expected_source": null, "answer_keywords": []}
+{"id": "web-04", "question": "Who is the current CEO of OpenAI?", "expected_route": "web", "expected_source": null, "answer_keywords": []}

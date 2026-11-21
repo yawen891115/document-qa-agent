@@ -1,0 +1,31 @@
+{
+  "name": "document-qa-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Voice-enabled document Q&A agent: React voice UI, Node.js/Express API, LangChain RAG on GPT-5, SerpAPI web search through an MCP server",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n mcp,api,web -c magenta,cyan,green \"npm run dev -w @docqa/mcp-search\" \"npm run dev -w @docqa/server\" \"npm run dev -w @docqa/web\"",
+    "build": "npm run build --workspaces",
+    "start": "concurrently -k -n mcp,api -c magenta,cyan \"npm start -w @docqa/mcp-search\" \"npm start -w @docqa/server\"",
+    "test": "npm test --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "ingest": "npm run ingest -w @docqa/server --",
+    "bench": "npm run bench -w @docqa/server --",
+    "mcp:stdio": "npm run start:stdio -w @docqa/mcp-search",
+    "demo": "node scripts/record-demo.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.7",
+    "gifenc": "^1.0.3",
+    "playwright-core": "^1.65.1",
+    "pngjs": "^7.0.0"
+  }
+}

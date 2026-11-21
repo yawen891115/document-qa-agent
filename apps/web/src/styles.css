@@ -1,0 +1,1056 @@
+/* DocQA: the conversation is set like an annotated page lying on a desk.
+   Yellow marks anything that comes from your documents (a highlighter),
+   blue marks anything from the web (a hyperlink), red means the mic is live. */
+
+:root {
+  --desk: #e4e9ef;
+  --page: #ffffff;
+  --ink: #1c2738;
+  --ink-soft: #566173;
+  --ink-faint: #8a94a5;
+  --rule: #cdd5df;
+  --rule-soft: #e5eaf0;
+  --highlight: #ffe45c;
+  --highlight-deep: #e9c623;
+  --highlight-soft: #fff6c4;
+  --link: #2557d6;
+  --link-soft: #e3eaff;
+  --live: #d93a3a;
+  --ok: #2b8a57;
+
+  --serif: "Literata Variable", Literata, Georgia, "Times New Roman", serif;
+  --sans: "Atkinson Hyperlegible Next Variable", "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --step--1: 0.8125rem; /* 13px */
+  --step-0: 0.9375rem; /* 15px */
+  --step-1: 1.125rem; /* 18px, reading size */
+  --step-2: 1.375rem;
+  --step-3: 2.5rem;
+
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--desk);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--step-0);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+p {
+  margin: 0;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ layout */
+
+.app {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100dvh;
+}
+
+.header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px 12px;
+}
+
+.header-main {
+  display: flex;
+  gap: 16px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.library-toggle {
+  display: none;
+}
+
+.brand {
+  font-family: var(--serif);
+  font-size: var(--step-2);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.brand-sub {
+  margin-left: 8px;
+  font-family: var(--sans);
+  font-size: var(--step--1);
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ink-soft);
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.status-item::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+  vertical-align: 1px;
+}
+
+.status-item.is-warn::before {
+  background: var(--highlight-deep);
+}
+
+.status-item.is-off::before {
+  background: var(--live);
+}
+
+/* ----------------------------------------------------------------- library */
+
+.library {
+  overflow-y: auto;
+  padding: 10px 22px 24px 24px;
+}
+
+.library h2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: var(--step-1);
+  font-weight: 650;
+}
+
+.library-summary {
+  margin: 2px 0 14px;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.dropzone {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 14px 13px;
+  border: 1.5px dashed var(--ink-faint);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 120ms, border-color 120ms;
+}
+
+.dropzone:hover,
+.dropzone.is-over {
+  border-color: var(--link);
+  background: var(--link-soft);
+}
+
+.dropzone:focus-within {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+.dropzone svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.dropzone small {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.library-status,
+.library-error {
+  margin-top: 12px;
+  font-size: var(--step--1);
+}
+
+.library-status {
+  color: var(--ink-soft);
+}
+
+.library-error {
+  color: var(--live);
+}
+
+.library-empty {
+  margin-top: 18px;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.library-empty .button {
+  margin-top: 10px;
+}
+
+.doc-list {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.doc {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.doc-icon {
+  margin-top: 2px;
+  color: var(--ink-soft);
+}
+
+.doc-name {
+  font-size: 0.875rem;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.doc-meta {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: var(--page);
+  color: var(--live);
+}
+
+/* -------------------------------------------------------------------- page */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0 24px 24px 0;
+  background: var(--page);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.banner {
+  padding: 10px 56px;
+  border-bottom: 1px solid var(--rule-soft);
+  background: var(--highlight-soft);
+  font-size: var(--step--1);
+}
+
+.banner code {
+  font-size: 0.95em;
+}
+
+.conversation {
+  flex: 1;
+  overflow-y: auto;
+  padding: 44px 56px 32px;
+}
+
+.conversation-inner {
+  max-width: 44rem;
+}
+
+/* ------------------------------------------------------------- empty state */
+
+.empty h1 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: var(--step-3);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.empty-lede {
+  max-width: 34rem;
+  margin-top: 14px;
+  font-family: var(--serif);
+  font-size: var(--step-1);
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.empty-library {
+  margin-top: 26px;
+  padding: 16px 18px;
+  border-left: 4px solid var(--highlight);
+  background: var(--highlight-soft);
+}
+
+.empty-library .button {
+  margin-top: 10px;
+}
+
+.examples {
+  display: grid;
+  gap: 22px;
+  margin-top: 36px;
+}
+
+.example-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.example {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--page);
+  font-family: var(--serif);
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.example:hover:not(:disabled) {
+  border-color: var(--ink);
+}
+
+.example:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* ------------------------------------------------------------------- turns */
+
+.turn {
+  scroll-margin-top: 28px;
+}
+
+/* At least one screen tall, so a new question can sit at the top while its answer streams in. */
+.turn:last-child {
+  min-height: calc(var(--viewport-height, 0px) - 64px);
+}
+
+.turn + .turn {
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid var(--rule-soft);
+}
+
+.question {
+  margin: 0 0 14px;
+  font-family: var(--sans);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.stage {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.stage::after {
+  content: "";
+  display: inline-block;
+  width: 1.2em;
+  text-align: left;
+  animation: ellipsis 1.2s steps(4) infinite;
+}
+
+@keyframes ellipsis {
+  0% { content: ""; }
+  25% { content: "."; }
+  50% { content: ".."; }
+  75% { content: "..."; }
+}
+
+.answer {
+  font-family: var(--serif);
+  font-size: var(--step-1);
+  line-height: 1.68;
+}
+
+.answer p,
+.answer ul,
+.answer ol {
+  margin: 0 0 0.75em;
+}
+
+.answer ul,
+.answer ol {
+  padding-left: 1.3em;
+}
+
+.answer li + li {
+  margin-top: 0.25em;
+}
+
+.answer a {
+  color: var(--link);
+}
+
+.answer em {
+  color: var(--ink-soft);
+}
+
+.answer.is-streaming > :last-child::after {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 1.05em;
+  margin-left: 2px;
+  background: var(--ink);
+  vertical-align: -0.15em;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+.answer-error {
+  color: var(--live);
+}
+
+/* Citation chips: a highlighter mark for documents, a link tint for the web. */
+.cite {
+  display: inline-block;
+  margin: 0 1px;
+  padding: 1px 5px 2px;
+  border: 0;
+  border-radius: 3px;
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.3;
+  vertical-align: 0.18em;
+  cursor: pointer;
+}
+
+.cite--doc {
+  background: var(--highlight);
+  color: var(--ink);
+}
+
+.cite--web {
+  background: var(--link-soft);
+  color: var(--link);
+}
+
+.cite--missing {
+  background: var(--rule-soft);
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+/* -------------------------------------------------------------- provenance */
+
+.provenance {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 18px;
+}
+
+.route-mark {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-top: 3px;
+  border-radius: 2px;
+}
+
+.route-mark--docs {
+  background: var(--highlight-deep);
+}
+
+.route-mark--web {
+  background: var(--link);
+}
+
+.route-mark--hybrid {
+  background: linear-gradient(135deg, var(--highlight-deep) 50%, var(--link) 50%);
+}
+
+.route-text {
+  font-size: var(--step--1);
+  font-weight: 700;
+}
+
+.route-reason {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.route-reason--warn {
+  color: var(--live);
+}
+
+/* ---------------------------------------------------------------- timeline */
+
+.timeline {
+  max-width: 26rem;
+  margin: 14px 0 0 22px;
+}
+
+.timeline-lanes {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 4px 10px;
+  align-items: center;
+}
+
+.lane-label {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+
+.lane {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--rule-soft);
+}
+
+.bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 2px;
+  border-radius: 3px;
+}
+
+.bar--docs {
+  background: var(--highlight-deep);
+}
+
+.bar--web {
+  background: var(--link);
+}
+
+.bar--wait {
+  background: #b7c0cd;
+}
+
+.bar--stream {
+  background: var(--ink);
+}
+
+.timeline figcaption {
+  margin-top: 6px;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+/* ----------------------------------------------------------------- sources */
+
+.sources {
+  margin-top: 18px;
+}
+
+.sources summary {
+  width: fit-content;
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.source-list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.source {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 8px;
+  padding: 10px 10px 10px 0;
+  border-top: 1px solid var(--rule-soft);
+  scroll-margin: 24px;
+  transition: background-color 300ms;
+}
+
+.source.is-active.source--doc {
+  background: var(--highlight-soft);
+}
+
+.source.is-active.source--web {
+  background: var(--link-soft);
+}
+
+.tag {
+  justify-self: end;
+  height: fit-content;
+  padding: 1px 5px 2px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.tag--doc {
+  background: var(--highlight);
+}
+
+.tag--web {
+  background: var(--link-soft);
+  color: var(--link);
+}
+
+.source-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+a.source-title {
+  color: var(--link);
+  text-decoration: none;
+}
+
+a.source-title:hover {
+  text-decoration: underline;
+}
+
+.source-where {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+
+.source-excerpt {
+  display: -webkit-box;
+  margin-top: 4px;
+  overflow: hidden;
+  font-family: var(--serif);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.source.is-active .source-excerpt {
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+
+/* ---------------------------------------------------------------- composer */
+
+.notice {
+  margin: 0 56px 8px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--live);
+  background: #fdeeee;
+  font-size: var(--step--1);
+}
+
+.composer {
+  padding: 16px 56px 16px;
+  border-top: 1px solid var(--rule-soft);
+}
+
+.composer-row {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  max-width: 50rem;
+}
+
+.composer-input {
+  flex: 1;
+  min-height: 48px;
+  max-height: 160px;
+  padding: 12px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--page);
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+  line-height: 1.45;
+  resize: none;
+}
+
+.composer-input::placeholder {
+  color: var(--ink-faint);
+}
+
+.composer-input.is-listening {
+  border-color: var(--live);
+}
+
+.composer-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  align-items: center;
+  max-width: 50rem;
+  margin-top: 12px;
+  padding-left: 70px;
+}
+
+/* The voice button: the one loud element. Its halo follows the mic level. */
+.orb {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: var(--page);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background-color 150ms, color 150ms, border-color 150ms;
+}
+
+.orb:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--page);
+}
+
+.orb:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.orb svg {
+  position: relative;
+}
+
+.orb-halo {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: var(--live);
+  opacity: 0;
+  transform: scale(1);
+  pointer-events: none;
+}
+
+.orb--listening,
+.orb--listening:hover:not(:disabled) {
+  border-color: var(--live);
+  background: var(--live);
+  color: #fff;
+}
+
+.orb--listening .orb-halo {
+  opacity: calc(0.16 + var(--level, 0) * 0.2);
+  transform: scale(calc(1.08 + var(--level, 0) * 0.75));
+  transition: transform 70ms linear, opacity 70ms linear;
+}
+
+.orb--transcribing {
+  border-style: dashed;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.button {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.button--primary {
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--page);
+}
+
+.button--primary:disabled {
+  border-color: var(--rule);
+  background: var(--rule);
+  color: var(--page);
+  cursor: default;
+}
+
+.button--quiet {
+  border: 1px solid var(--rule);
+  background: var(--page);
+}
+
+.button--quiet:hover:not(:disabled) {
+  border-color: var(--ink);
+}
+
+.library-empty .button--quiet,
+.empty-library .button {
+  min-height: 38px;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--link);
+  font-size: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Source mode: a segmented control. */
+.modes {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+}
+
+.modes label {
+  position: relative;
+}
+
+.modes input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.modes span {
+  display: block;
+  padding: 4px 13px;
+  border-radius: 999px;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.modes span:hover {
+  color: var(--ink);
+}
+
+.modes input:checked + span {
+  background: var(--ink);
+  color: var(--page);
+}
+
+.modes input:focus-visible + span {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+}
+
+.read-aloud {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: var(--step--1);
+}
+
+.switch {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.switch-track {
+  position: relative;
+  width: 30px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--rule);
+  transition: background-color 150ms;
+}
+
+.switch-track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--page);
+  transition: transform 150ms;
+}
+
+.switch input:checked + .switch-track {
+  background: var(--ink);
+}
+
+.switch input:checked + .switch-track::after {
+  transform: translateX(12px);
+}
+
+.switch input:focus-visible + .switch-track {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+.voice-note {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+
+/* ------------------------------------------------------------------ mobile */
+
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 12px 16px 10px;
+  }
+
+  .library-toggle {
+    display: inline-block;
+    padding: 4px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    background: var(--page);
+    font-size: var(--step--1);
+    cursor: pointer;
+  }
+
+  .library {
+    display: none;
+    max-height: 55vh;
+    padding: 4px 16px 16px;
+  }
+
+  .library.is-open {
+    display: block;
+  }
+
+  .composer-input {
+    font-size: 1rem; /* 16px keeps iOS from zooming in on focus */
+  }
+
+  .voice-note {
+    display: none;
+  }
+
+  .page {
+    margin: 0;
+    border-width: 1px 0 0;
+    border-radius: 0;
+  }
+
+  .banner,
+  .conversation,
+  .composer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .conversation {
+    padding-top: 26px;
+  }
+
+  .notice {
+    margin: 0 18px 8px;
+  }
+
+  .empty h1 {
+    font-size: 2rem;
+  }
+
+  .composer-options {
+    padding-left: 0;
+  }
+
+  .timeline {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .orb--listening .orb-halo {
+    transform: scale(1.12);
+    opacity: 0.25;
+  }
+}

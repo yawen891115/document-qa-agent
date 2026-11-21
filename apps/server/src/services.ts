@@ -1,0 +1,57 @@
+import { QAPipeline } from "./agent/pipeline.js";
+import type { AppConfig } from "./config.js";
+import { createModels, type Models } from "./llm/models.js";
+import { log } from "./logger.js";
+import { DisabledWebSearch, McpWebSearchClient, type WebSearchTool } from "./mcp/webSearchClient.js";
+import { KnowledgeBase } from "./rag/knowledgeBase.js";
+import { LocalVectorStore } from "./rag/vectorStore.js";
+
+export interface Services {
+  config: AppConfig;
+  models: Models;
+  kb: KnowledgeBase;
+  web: WebSearchTool;
+  pipeline: QAPipeline;
+  close(): Promise<void>;
+}
+
+/** Wires everything together. Tests pass `overrides` to swap in fakes. */
+export async function createServices(
+  config: AppConfig,
+  overrides: { models?: Models; web?: WebSearchTool; persist?: boolean } = {},
+): Promise<Services> {
+  const models = overrides.models ?? createModels(config.llm);
+  const persist = overrides.persist ?? true;
+
+  const store = new LocalVectorStore(models.embeddings, {
+    file: persist ? `${config.paths.indexDir}/vectors.json` : undefined,
+    embeddingModel: models.embeddingModelName,
+  });
+  const kb = new KnowledgeBase(store, models.embeddings, {
+    chunkSize: config.rag.chunkSize,
+    chunkOverlap: config.rag.chunkOverlap,
+    registryFile: persist ? `${config.paths.indexDir}/documents.json` : undefined,
+  });
+  await kb.load();
+
+  const web =
+    overrides.web ??
+    (config.webSearch.enabled
+      ? new McpWebSearchClient(config.webSearch.mcpServerUrl, {
+          timeoutMs: config.webSearch.timeoutMs,
+          numResults: config.webSearch.numResults,
+        })
+      : new DisabledWebSearch());
+
+  const pipeline = new QAPipeline(kb, models.chat, web, config.rag, models.chatModelName);
+
+  log.info("Services ready", {
+    llm: models.provider === "openai" ? models.chatModelName : "offline (no OPENAI_API_KEY)",
+    embeddings: models.embeddingModelName,
+    documents: kb.list().length,
+    chunks: kb.chunkCount,
+    webSearch: web.enabled ? config.webSearch.mcpServerUrl : "disabled",
+  });
+
+  return { config, models, kb, web, pipeline, close: () => web.close() };
+}
